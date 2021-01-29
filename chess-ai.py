@@ -13,8 +13,10 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.MOUSEBUTTONDOWN:
-            # Set the x, y postions of the mouse click
             board.click(event.pos)
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                board.revert()
 
     screen.fill((50, 50, 50))
     board.draw(screen)

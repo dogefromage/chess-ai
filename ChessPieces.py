@@ -1,13 +1,14 @@
 import pygame
 
 class Piece:
-    def __init__(self, img, isBlack):
+    def __init__(self, img, isBlack, value):
         self.img = img
         self.isBlack = isBlack
+        self.value = value
 
 class Knight(Piece):
     def __init__(self, img, isBlack):
-        Piece.__init__(self, img, isBlack)
+        Piece.__init__(self, img, isBlack, 3)
         self.moveStyle = 'absolute'
         self.moves = [
             (1, 2),
@@ -20,22 +21,20 @@ class Knight(Piece):
             (2, 1)
         ]
 
-class Pawn(Piece):
+class Pawn(Piece): # cuck
     def __init__(self, img, isBlack):
-        Piece.__init__(self, img, isBlack)
-        self.moveStyle = 'absolute'
+        Piece.__init__(self, img, isBlack, 1)
+        self.moveStyle = 'pawn' 
         self.moves = [
-            (0, 1),
-            (0, 2)
-        ]
-        self.takeOnly = [
             (1, 1),
-            (-1, 1)
+            (-1, 1),
+            (0, 1),
+            (0, 2),
         ]
 
 class Queen(Piece):
     def __init__(self, img, isBlack):
-        Piece.__init__(self, img, isBlack)
+        Piece.__init__(self, img, isBlack, 9)
         self.moveStyle = 'continuous'
         self.moves = [
             (1, 0),
@@ -49,8 +48,8 @@ class Queen(Piece):
         ]  
 
 class King(Piece):
-    def __init__(self, img, isBlack):
-        Piece.__init__(self, img, isBlack)
+    def __init__(self, img, isBlack): 
+        Piece.__init__(self, img, isBlack, 10) # value???
         self.moveStyle = 'absolute'
         self.moves = [
             (1, 0),
@@ -65,7 +64,7 @@ class King(Piece):
 
 class Rook(Piece):
     def __init__(self, img, isBlack):
-        Piece.__init__(self, img, isBlack)
+        Piece.__init__(self, img, isBlack, 5)
         self.moveStyle = 'continuous'
         self.moves = [
             (1, 0),
@@ -76,7 +75,7 @@ class Rook(Piece):
 
 class Bishop(Piece):
     def __init__(self, img, isBlack):
-        Piece.__init__(self, img, isBlack)
+        Piece.__init__(self, img, isBlack, 3)
         self.moveStyle = 'continuous'
         self.moves = [
             (1, 1),
