@@ -20,17 +20,8 @@ class ChessBoard:
             [ '-W', '-W', '-W', '-W', '-W', '-W', '-W', '-W'],
             [ 'RW', 'NW', 'BW', 'QW', 'KW', 'BW', 'NW', 'RW']
         ]
-        # self.squares = [
-        #     [ '',   '',   '',   'KW',   '',   '',   '',   '', ],
-        #     [ '',   '',   '',   '',   '',   '',   '',   '', ],
-        #     [ '',   '',   '',   '',   '',   '',   '',   '', ],
-        #     [ '',   '',   '',   '',   '',   '',   '',   '', ],
-        #     [ '',   '',   '',   '',   '',   '',   '',   '', ],
-        #     [ '',   '',   '',   '',   '',   '',   '',   '', ],
-        #     [ '',   '',   '',   '',   '',   '',   '',   '', ],
-        #     [ '',   'RB',   'RB',   '',   '',   'RB',   '',   '', ],
-        # ]
         self.timeline = []
+        self.gameOver = ''
 
     def draw(self, screen):
         self.recalculateCamera(screen)
@@ -38,7 +29,6 @@ class ChessBoard:
             for i in range(self.width):
                 screenCoords = self.BoardToScreen((i, j))
                 rect = Rect(screenCoords, (self.scale, self.scale))
-
                 # square color
                 evenField = (i + j) % 2 == 0
                 selectedField = self.selection == (i, j)
@@ -62,9 +52,6 @@ class ChessBoard:
                     color = "#92c65d"
                 if bad:
                     color = "#cc5555"
-
-
-
                 pygame.draw.rect(screen, color, rect)
                 # piece
                 piece = pieces.get(self.squares[j][i])
@@ -135,16 +122,21 @@ class ChessBoard:
                                 if piece.isBlack:
                                     if self.selection[1] != 1: # actual y of piece
                                         break
+                                    if self.squares[2][self.selection[0]] != '': # if piece inbetween
+                                        break
                                 else:
                                     if self.selection[1] != 6:
+                                        break
+                                    if self.squares[5][self.selection[0]] != '':
                                         break
                     if considerCheck:
                         self.movePiece(self.selection, (x, y)) # check illegal move
                         check = self.checkCheck(not self.blacksTurn)
                         self.revertMove()
-                        if check:
-                            break
-                    self.available.append((x, y)) # add move to available
+                        if not check: # cannot ues break here because blocking check with continuous piece doesn't work
+                            self.available.append((x, y)) # add move to available
+                    else:
+                        self.available.append((x, y)) # add move to available
                     if (piece.moveStyle == 'absolute' or piece.moveStyle == 'pawn'):  # only one move possible if absolute
                         break
                     if self.squares[y][x] != '': # if square is already occupied piece can't go further
@@ -177,73 +169,6 @@ class ChessBoard:
                     return (i, j)
         return None
 
-    # def getAllPieceLocations(self, isBlack):
-    #     locations = []
-    #     for j in range(self.height):
-    #         for i in range(self.width):
-    #             square = self.squares[j][i]
-    #             if square != '':
-    #                 if (square[1] == 'B') == isBlack:
-    #                     locations.append((i, j))
-    #     return locations
-
-    # def findKings(self):
-    #     whiteKing = None; blackKing = None
-    #     for j in range(self.height):
-    #         for i in range(self.width):
-    #             square = self.squares[j][i]
-    #             if square == 'KB':
-    #                 blackKing = (i, j)
-    #             elif square == 'KW':
-    #                 whiteKing = (i, j)
-    #     return (whiteKing, blackKing)
-
-    # def gameStatus(self): # detects check on both sides and keeps track of count of available moves for players
-    #     kings = self.findKings()
-    #     oldSelection = self.selection; oldAvailable = self.available
-    #     self.badField = (-1, -1)
-    #     whiteCheck = False; blackCheck = False
-    #     whiteAvailable = 0; blackAvailable = 0
-    #     whiteKingAvailable = 0; blackKingAvailable = 0 
-    #     for j in range(self.height):
-    #         for i in range(self.width):
-    #             piece = pieces.get(self.squares[j][i])
-    #             if piece:
-    #                 self.selection = (i, j)
-    #                 self.findAvailableSquares()
-    #                 # find all available moves, because if 0 then stalemate
-    #                 if piece.isBlack:
-    #                     blackAvailable += self.available
-    #                     if isinstance(piece, King):
-    #                         blackKingAvailable += self.available
-    #                 else:
-    #                     whiteAvailable += self.available
-    #                     if isinstance(piece, King):
-    #                         whiteKingAvailable += self.available
-    #                 for a in self.available:
-    #                     if kings[0] == a:
-    #                         whiteCheck = True
-    #                         self.badField = a
-    #                     elif kings[1] == a:
-    #                         blackCheck = True
-    #                         self.badField = a
-    #     self.selection = oldSelection
-    #     self.available = oldAvailable
-
-    #     # illegal move from white?
-    #     if whiteCheck and self.blacksTurn:
-    #         return 'illegal'
-    #     # illegal move from black?
-    #     if blackCheck and not self.blacksTurn:
-    #         return 'illegal'
-    #     # stalemate on white?
-    #     if whiteAvailable == 0 and not whiteCheck  :
-    #         return 'stalemate'
-    #     if blackAvailable == 0 and not blackCheck:
-    #     # checkmate?
-
-    #     #normal
-
     def move(self, oldPos, newPos):
         self.movePiece(oldPos, newPos)
         # available move count
@@ -254,19 +179,16 @@ class ChessBoard:
                 piece = pieces.get(self.squares[j][i])
                 if piece:
                     if piece.isBlack == self.blacksTurn:
-                        print ((i, j))
                         self.selection = (i, j)
                         self.findAvailableSquares(True)
                         availableMoves += len(self.available)
         check = self.checkCheck(self.blacksTurn)
 
-        print("check %s, available %s" % (check, availableMoves))
-
         if availableMoves == 0:
             if check:
-                print("checkmate")
+                self.gameOver = 'checkmate'
             else:
-                print("stalemate")
+                self.gameOver = 'stalemate'
 
     def movePiece(self, oldPos, newPos):
         ox, oy = oldPos

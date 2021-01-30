@@ -6,6 +6,8 @@ pygame.display.set_caption("Chess AI")
 
 from ChessBoard import ChessBoard
 board = ChessBoard()
+from ChessAI import ChessAI
+ai = ChessAI(1, True)
 
 running = True
 while running:
@@ -17,6 +19,10 @@ while running:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
                 board.revert()
+
+    if board.gameOver == '':
+        if board.blacksTurn:
+            ai.play(board)
 
     screen.fill((50, 50, 50))
     board.draw(screen)
