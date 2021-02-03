@@ -42,12 +42,11 @@ class ChessBoard:
                 if evenField:
                     color = "#a3854e"
                     if availableField:
-                        # color = "#a3594e"
                         color = "#4ea36d"
                 else:
                     color = "#edd09a"
                     if availableField:
-                        color = "#9aedb5" #"#eda79a"
+                        color = "#9aedb5"
                 if selectedField:
                     color = "#92c65d"
                 if bad:
@@ -78,28 +77,31 @@ class ChessBoard:
 
     def select(self, square):
         for a in self.available:
-            if a[0] == square[0] and a[1] == square[1]:
-                self.move(self.selection, a)
+            if a == square:
+                gameState = self.move(self.selection, a)
+                if (gameState == 'checkmate' or gameState == 'stalemate'):
+                    self.gameOver = gameState
+
         # reset selection
-        self.selection = (-1, -1)
-        self.available = []
         if self.isInsideBoard(square):
+            self.selection = (-1, -1)
+            self.available = []
             piece = pieces.get(self.squares[square[1]][square[0]])
             if piece:
                 if piece.isBlack == self.blacksTurn:
                     self.selection = square
-                    self.findAvailableSquares()
+                    self.available = self.findAvailableSquares(self.selection)
 
     def isInsideBoard(self, coords):
         return coords[0] >= 0 and coords[1] >= 0 and coords[0] < self.width and coords[1] < self.height
 
-    def findAvailableSquares(self, considerCheck = True):
-        self.available = []
-        x, y = self.selection
-        piece = pieces.get(self.squares[y][x])
+    def findAvailableSquares(self, position, considerCheck = True):
+        available = []
+        startX, startY = position
+        piece = pieces.get(self.squares[startY][startX])
         if (piece):
             for move in piece.moves:
-                x, y = self.selection
+                x = startX; y = startY
                 dx, dy = move[:2]
                 if (not piece.isBlack):
                     dy = -dy
@@ -120,43 +122,40 @@ class ChessBoard:
                                 break
                             if move[1] == 2: # only 2 at beginning
                                 if piece.isBlack:
-                                    if self.selection[1] != 1: # actual y of piece
+                                    if startY != 1: # actual y of piece
                                         break
-                                    if self.squares[2][self.selection[0]] != '': # if piece inbetween
+                                    if self.squares[2][startX] != '': # if piece inbetween
                                         break
                                 else:
-                                    if self.selection[1] != 6:
+                                    if startY != 6:
                                         break
-                                    if self.squares[5][self.selection[0]] != '':
+                                    if self.squares[5][startX] != '':
                                         break
                     if considerCheck:
-                        self.movePiece(self.selection, (x, y)) # check illegal move
+                        self.movePiece(position, (x, y)) # check illegal move
                         check = self.checkCheck(not self.blacksTurn)
                         self.revertMove()
                         if not check: # cannot ues break here because blocking check with continuous piece doesn't work
-                            self.available.append((x, y)) # add move to available
+                            available.append((x, y)) # add move to available
                     else:
-                        self.available.append((x, y)) # add move to available
+                        available.append((x, y)) # add move to available
                     if (piece.moveStyle == 'absolute' or piece.moveStyle == 'pawn'):  # only one move possible if absolute
                         break
                     if self.squares[y][x] != '': # if square is already occupied piece can't go further
                         break
+        return available
     
     def checkCheck(self, black):
         king = self.findKing(black)
-        oldSelection = self.selection; oldAvailable = self.available
         for j in range(self.height):
             for i in range(self.width):
                 piece = pieces.get(self.squares[j][i])
                 if piece:
                     if piece.isBlack != black:
-                        self.selection = (i, j)
-                        self.findAvailableSquares(False)
-                        for a in self.available:
+                        available = self.findAvailableSquares((i, j), False)
+                        for a in available:
                             if king == a:
-                                self.selection = oldSelection; self.available = oldAvailable
                                 return True
-        self.selection = oldSelection; self.available = oldAvailable
         return False
 
     def findKing(self, black):
@@ -170,33 +169,35 @@ class ChessBoard:
         return None
 
     def move(self, oldPos, newPos):
-        self.movePiece(oldPos, newPos)
+        taken = self.movePiece(oldPos, newPos)
         # available move count
         availableMoves = 0
-        oldSelection = self.selection; oldAvailable = self.available
         for j in range(self.height):
             for i in range(self.width):
                 piece = pieces.get(self.squares[j][i])
                 if piece:
                     if piece.isBlack == self.blacksTurn:
-                        self.selection = (i, j)
-                        self.findAvailableSquares(True)
-                        availableMoves += len(self.available)
+                        available = self.findAvailableSquares((i, j), True)
+                        availableMoves += len(available)
         check = self.checkCheck(self.blacksTurn)
 
         if availableMoves == 0:
             if check:
-                self.gameOver = 'checkmate'
+                return 'checkmate'
             else:
-                self.gameOver = 'stalemate'
+                return 'stalemate'
+        else:
+            return taken
 
     def movePiece(self, oldPos, newPos):
         ox, oy = oldPos
         nx, ny = newPos
-        self.timeline.append((oldPos, newPos, self.squares[ny][nx])) # (old, new, takes?)
+        lastPiece = self.squares[ny][nx]
+        self.timeline.append((oldPos, newPos, lastPiece)) # (old, new, takes?)
         self.squares[ny][nx] = self.squares[oy][ox]
         self.squares[oy][ox] = ''
         self.blacksTurn = not self.blacksTurn
+        return lastPiece
 
     def revertMove(self):
         action = self.timeline.pop(-1)

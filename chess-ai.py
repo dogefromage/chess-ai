@@ -23,6 +23,8 @@ while running:
     if board.gameOver == '':
         if board.blacksTurn:
             ai.play(board)
+    else:
+        print(board.gameOver)
 
     screen.fill((50, 50, 50))
     board.draw(screen)
