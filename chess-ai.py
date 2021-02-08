@@ -6,8 +6,6 @@ pygame.display.set_caption("Chess AI")
 
 from ChessBoard import ChessBoard
 board = ChessBoard()
-from ChessAI import ChessAI
-ai = ChessAI(1, True)
 
 running = True
 while running:
