@@ -4,8 +4,8 @@ pygame.init()
 screen = pygame.display.set_mode((600, 700), pygame.RESIZABLE)
 pygame.display.set_caption("Chess AI")
 
-from ChessBoard import ChessBoard
-board = ChessBoard()
+from ChessGame import ChessGame
+game = ChessGame()
 
 running = True
 while running:
@@ -25,6 +25,6 @@ while running:
         print(board.gameOver)
 
     screen.fill((50, 50, 50))
-    board.draw(screen)
-    
+
+
     pygame.display.update()

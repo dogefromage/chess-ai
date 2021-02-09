@@ -88,7 +88,7 @@ class ChessBoard:
     def standsCheck(self, othersMoves, isWhite):
         king = isWhite if self.whiteKing else self.blackKing
         for move in othersMoves:
-            if king == moves[1]:
+            if king == move[1]:
                 return True
         return False
 
@@ -111,7 +111,6 @@ class ChessBoard:
         if square == 0:
             return False
         return self.canMove(index, isWhite)
-
 
 # import pygame
 # from pygame.locals import *
