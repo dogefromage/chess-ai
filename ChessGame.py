@@ -1,56 +1,69 @@
+from ChessBoard import ChessBoard
+import pygame
+from pygame.locals import *
+from ChessAI import ChessAI
 
-
-class ChessGame:
-
-pieces = {
-    11: Rook(pygame.image.load('pieces/rook-white.png'), False),
-    12: Knight(pygame.image.load('pieces/knight-white.png'), False),
-    13: Bishop(pygame.image.load('pieces/bishop-white.png'), False),
-    14: Queen(pygame.image.load('pieces/queen-white.png'), False),
-    10: King(pygame.image.load('pieces/king-white.png'), False),
-    1: Pawn(pygame.image.load('pieces/pawn-white.png'), False),
-    21: Rook(pygame.image.load('pieces/rook-black.png'), True),
-    22: Knight(pygame.image.load('pieces/knight-black.png'), True),
-    23: Bishop(pygame.image.load('pieces/bishop-black.png'), True),
-    24: Queen(pygame.image.load('pieces/queen-black.png'), True),
-    20: King(pygame.image.load('pieces/king-black.png'), True),
-    2: Pawn(pygame.image.load('pieces/pawn-black.png'), True),
+pieceImagePaths = {
+    (11, 'pieces/rook-white.png'),
+    (12, 'pieces/knight-white.png'),
+    (13, 'pieces/bishop-white.png'),
+    (14, 'pieces/queen-white.png'),
+    (10, 'pieces/king-white.png'),
+    (1,  'pieces/pawn-white.png'),
+    (21, 'pieces/rook-black.png'),
+    (22, 'pieces/knight-black.png'),
+    (23, 'pieces/bishop-black.png'),
+    (24, 'pieces/queen-black.png'),
+    (20, 'pieces/king-black.png'),
+    (2,  'pieces/pawn-black.png')
 }
 
-def recalculateCamera(self):
-    W, H = screen.get_size()
-    w = W - 50; h = H - 50 # margin
-    self.scale = min( int(w / self.width), int(h / self.height) )
-    self.left = (W - self.scale * self.height) * 0.5
-    self.top = (H - self.scale * self.width) * 0.5
+pieces = {}
+for key, link in pieceImagePaths:
+    pieces[key] = pygame.image.load(link)
 
-def BoardToScreen(self, coords):
-    x, y = coords
-    return (int(self.left + self.scale * x), int(self.top + self.scale * y))
+class ChessGame:
+    def __init__(self):
+        self.board = ChessBoard()
+        self.selection = 0
+        self.available = []
+        self.gameState = "White to move"
+        self.AI = ChessAI()
+    
+    def recalculateCamera(self, screen):
+        W, H = screen.get_size()
+        w = W - 50; h = H - 50 # margin
+        self.scale = int(min(w, h) / 8)
+        self.left = (W - self.scale * 8) * 0.5
+        self.top = (H - self.scale * 8) * 0.5
 
-def ScreenToBoard(self, coords):
-    x, y = coords
-    return (int((x - self.left) / self.scale), int((y - self.top) / self.scale))
+    def BoardToScreen(self, index):
+        i = index % 10 - 1
+        j = index // 10 - 2
+        x = int(self.left + self.scale * i)
+        y = int(self.top + self.scale * j)
+        return (x, y)
 
-def click(self, coords):
-    self.select(self.ScreenToBoard(coords))
+    def ScreenToBoard(self, coords):
+        x, y = coords
+        i = int((x - self.left) / self.scale)
+        j = int((y - self.top) / self.scale)
+        return i + 10 * j + 21 # account for 1D board with margins
 
-
-
-    recalculateCamera(screen)
-    for j in range(self.height):
-        for i in range(self.width):
-            screenCoords = self.BoardToScreen((i, j))
+    def draw(self, screen):
+        self.recalculateCamera(screen)
+        for index in range(len(self.board.board)):
+            if self.board.board[index] < 0:
+                continue # skip margin squares when drawing
+            screenCoords = self.BoardToScreen(index)
             rect = Rect(screenCoords, (self.scale, self.scale))
             # square color
-            evenField = (i + j) % 2 == 0
-            selectedField = self.selection == (i, j)
-            bad = self.badField == (i, j)
-            
+            evenField = (index - index // 10) % 2 == 0 # ?? but works
+            selectedField = self.selection == index
             availableField = False
             for a in self.available:
-                if (a == (i, j)):
-                    availableField = True
+                if (a == index):
+                    availableField = True; break
             color = "#ff00ff"
             if evenField:
                 color = "#a3854e"
@@ -62,11 +75,39 @@ def click(self, coords):
                     color = "#9aedb5"
             if selectedField:
                 color = "#92c65d"
-            if bad:
-                color = "#cc5555"
             pygame.draw.rect(screen, color, rect)
             # piece
-            piece = pieces.get(self.squares[j][i])
+            piece = pieces.get(self.board.board[index])
             if piece:
-                screen.blit(pygame.transform.scale(piece.img, (self.scale, self.scale)), screenCoords)
-    
+                screen.blit(pygame.transform.scale(piece, (self.scale, self.scale)), screenCoords)
+
+        font = pygame.font.SysFont(None, 50)
+        img = font.render(self.gameState, True, "#aaaaaa")
+        w, h = screen.get_size()
+        screen.blit(img, (20, 20))
+
+    def click(self, coords):
+        self.select(self.ScreenToBoard(coords))
+
+    def select(self, index):
+        for a in self.available:
+            if a == index:
+                self.board.move(self.selection, a)
+                self.selection = 0; self.available = []
+                
+                # self.gameState = self.board.getGameState()
+
+                # COMPUTER
+                computerMove = self.AI.play(self.board)
+                if computerMove:
+                    self.board.move(computerMove[0], computerMove[1])
+                self.gameState = self.board.getGameState()
+                return
+
+        self.selection = index
+        self.available = self.board.getAvailable(index)
+        
+
+    def takeBack(self):
+        self.board.takeBack()
+        self.selection = 0; self.available = []

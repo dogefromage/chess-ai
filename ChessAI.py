@@ -1,29 +1,65 @@
-from ChessPieces import *
-import random
+from ChessBoard import ChessBoard
 
 class ChessAI:
-    def __init__(self, maxDepth, isBlack):
+    def __init__(self, maxDepth = 4, isBlack = True):
         self.maxDepth = maxDepth
         self.isBlack = isBlack
-
+ 
     def play(self, board):
-        old, new = self.minimax(board, True)
-        board.move(old, new)
+        return self.minimax(board, True, 0)[0] # return only move
 
-    def minimax(self, board, maximizingPlayer):
-        olds = []
-        for j in range(board.height):
-            for i in range(board.width):
-                piece = pieces.get(board.squares[j][i])
-                if piece:
-                    if piece.isBlack == self.isBlack:
-                        board.selection = (i, j)
-                        board.findAvailableSquares()
-                        if len(board.available) > 0:
-                            olds.append((i, j, board.available))
-        index1 = random.randrange(0,len(olds))
-        old = olds[index1]
-        index2 = random.randrange(0, len(old[2]))
-        new = old[2][index2]
-        board.selection = (-1, -1)
-        return (old[:2], new)
+    def minimax(self, board, maximizingPlayer, currentDepth):
+        if (currentDepth == self.maxDepth):
+            return (None, self.staticEval(board))
+        if maximizingPlayer:
+            bestMove = None; bestScore = -100000
+            for piece in board.moves:
+                for m in board.moves[piece]:
+                    boardCopy = ChessBoard(board) # replace with copy
+                    action = boardCopy.move(piece, m)
+                    if action < 0: # move illegal
+                        continue
+                    # throw away move, only score needed
+                    _, score = self.minimax(boardCopy, False, currentDepth + 1)
+                    if action == 1 or action == 2:
+                        score += 1 # eaten peasant
+                    else:
+                        action %= 10
+                        if action == 1:
+                            score += 5 # rook
+                        elif action == 2 or action == 3:
+                            score += 3 # horse / bishop
+                        elif action == 4:
+                            score += 9 # queen
+                    if score > bestScore:
+                        bestScore = score
+                        bestMove = (piece, m)
+            return (bestMove, bestScore)
+        else:
+            worstMove = None; worstScore = 100000
+            for piece in board.moves:
+                for m in board.moves[piece]:
+                    boardCopy = ChessBoard(board) # replace with copy
+                    action = boardCopy.move(piece, m)
+                    if action < 0: # move illegal
+                        continue
+                    # throw away move, only score needed
+                    _, score = self.minimax(boardCopy, True, currentDepth + 1)
+                    if action == 1 or action == 2:
+                        score -= 1 # eaten peasant
+                    else:
+                        action %= 10
+                        if action == 1:
+                            score -= 5 # rook
+                        elif action == 2 or action == 3:
+                            score -= 3 # horse / bishop
+                        elif action == 4:
+                            score -= 9 # queen
+                    if score > worstScore:
+                        worstScore = score
+                        worstMove = (piece, m)
+            return (worstMove, worstScore)
+
+
+    def staticEval(self, board):
+        return 0

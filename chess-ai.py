@@ -13,18 +13,11 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.MOUSEBUTTONDOWN:
-            board.click(event.pos)
+            game.click(event.pos)
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
-                board.revert()
-
-    if board.gameOver == '':
-        if board.blacksTurn:
-            ai.play(board)
-    else:
-        print(board.gameOver)
+                game.takeBack()
 
     screen.fill((50, 50, 50))
-
-
+    game.draw(screen)
     pygame.display.update()
