@@ -1,3 +1,4 @@
+from multiprocessing import Manager, managers
 from ChessBoard import ChessBoard
 import pygame
 from pygame.locals import *
@@ -27,8 +28,11 @@ class ChessGame:
         self.board = ChessBoard()
         self.selection = 0
         self.available = []
-        self.gameState = "White to move"
+        self.lastPlayed = ()
+        self.gameInfo = "White to move"
+        self.gameOver = False
         self.AI = ChessAI()
+        self.overlay = False
     
     def recalculateCamera(self, screen):
         W, H = screen.get_size()
@@ -50,6 +54,16 @@ class ChessGame:
         j = int((y - self.top) / self.scale)
         return i + 10 * j + 21 # account for 1D board with margins
 
+    def aiPlay(self):
+        if self.board.whitesTurn == self.AI.isWhite:
+            move = self.AI.play(self.board)
+            if move == (-69, -69):
+                self.gameInfo = "AI resigns!"
+                self.gameOver = True
+            else:
+                self.select(move[0])
+                self.select(move[1])
+
     def draw(self, screen):
         self.recalculateCamera(screen)
         for index in range(len(self.board.board)):
@@ -58,32 +72,37 @@ class ChessGame:
             screenCoords = self.BoardToScreen(index)
             rect = Rect(screenCoords, (self.scale, self.scale))
             # square color
-            evenField = (index - index // 10) % 2 == 0 # ?? but works
+            darkField = (index - index // 10) % 2 == 0 # ?? but works
             selectedField = self.selection == index
             availableField = False
             for a in self.available:
                 if (a == index):
                     availableField = True; break
+            justPlayedField = False
+            for f in self.lastPlayed:
+                if index == f:
+                    justPlayedField = True
             color = "#ff00ff"
-            if evenField:
-                color = "#a3854e"
-                if availableField:
-                    color = "#4ea36d"
+            if availableField or selectedField:
+                color = "#9aedb5" if darkField else "#4ea36d"
+            elif justPlayedField:
+                color = "#f4e992" if darkField else "#ddce5d"
             else:
-                color = "#edd09a"
-                if availableField:
-                    color = "#9aedb5"
-            if selectedField:
-                color = "#92c65d"
+                color = "#edd09a" if darkField else "#a3854e"
+
             pygame.draw.rect(screen, color, rect)
             # piece
             piece = pieces.get(self.board.board[index])
             if piece:
                 screen.blit(pygame.transform.scale(piece, (self.scale, self.scale)), screenCoords)
-
-        font = pygame.font.SysFont(None, 50)
-        img = font.render(self.gameState, True, "#aaaaaa")
-        w, h = screen.get_size()
+            
+            # number overlay
+            if self.overlay:
+                font = pygame.font.SysFont(None, 30)
+                img = font.render(f"{index}", True, "#ff0000")
+                screen.blit(img, screenCoords)
+        font = pygame.font.SysFont(None, 60)
+        img = font.render(self.gameInfo, True, "#dddddd")
         screen.blit(img, (20, 20))
 
     def click(self, coords):
@@ -92,22 +111,16 @@ class ChessGame:
     def select(self, index):
         for a in self.available:
             if a == index:
-                self.board.move(self.selection, a)
+                result = self.board.move(self.selection, a)
+                if result >= 0:
+                    self.lastPlayed = (self.selection, a)
+                    self.gameInfo, self.gameOver = self.board.getGameState()
                 self.selection = 0; self.available = []
-                
-                # self.gameState = self.board.getGameState()
-
-                # COMPUTER
-                computerMove = self.AI.play(self.board)
-                if computerMove:
-                    self.board.move(computerMove[0], computerMove[1])
-                self.gameState = self.board.getGameState()
                 return
-
         self.selection = index
         self.available = self.board.getAvailable(index)
-        
 
     def takeBack(self):
+        self.board.takeBack()
         self.board.takeBack()
         self.selection = 0; self.available = []
